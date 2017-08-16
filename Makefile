@@ -1,4 +1,4 @@
-.PHONY: clean test purge analysis optimized format tags
+.PHONY: test-full test analysis fuzz optimized format tags
 
 TARGET=./bin
 LIB=./lib
@@ -6,8 +6,7 @@ LIB=./lib
 src: prepare
 	@ cd src && CFLAGS='-ggdb -Werror' $(MAKE)
 
-test: src prepare
-	@ cd test && $(MAKE) $@
+test-full: analysis test fuzz
 
 prepare:
 	@ mkdir -p $(LIB)
@@ -23,7 +22,13 @@ optimized: prepare
 
 # run clang-analyzer
 analysis: clean
-	scan-build $(MAKE) -s
+	@ scan-build $(MAKE)
+
+test: src
+	@ cd test && $(MAKE) test
+
+fuzz: src
+	@ cd test && $(MAKE) fuzz
 
 format:
 	@ find src -name \*.h -o -name \*.c | xargs clang-format -i
