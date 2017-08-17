@@ -1,13 +1,12 @@
 CC = clang
-# TODO renable address sanitizer
-CFLAGS = -Wall -fprofile-instr-generate -fcoverage-mapping -Werror -std=c99 -ggdb
+CFLAGS = -Wall -Werror -fsanitize-coverage=trace-cmp -fsanitize-coverage=trace-pc-guard -fprofile-instr-generate -fcoverage-mapping -std=c99 -g
 
 SRC = ../src
 TARGET = ../bin
 TESTS = $(addprefix $(TARGET)/,$(patsubst %.c,%,$(wildcard *_test.c)))
 FUZZERS = $(addprefix $(TARGET)/,$(patsubst %.c,%,$(wildcard *_fuzz.c)))
-TCOVERAGES = $(addprefix $(TARGET)/,$(patsubst %.c,%.prof,$(wildcard *_test.c)))
-FCOVERAGES = $(addprefix $(TARGET)/,$(patsubst %.c,%.prof,$(wildcard *_fuzz.c)))
+TPROFILES = $(addprefix $(TARGET)/,$(patsubst %.c,%.profraw,$(wildcard *_test.c)))
+FPROFILES = $(addprefix $(TARGET)/,$(patsubst %.c,%.profraw,$(wildcard *_fuzz.c)))
 
 LIBSLAB = ../lib/libslab.a
 
@@ -17,36 +16,36 @@ FUZZPROFDATA=$(TARGET)/fuzz.profdata
 .PHONY: clean test fuzz coverage full-coverage fuzz-coverage
 
 test: $(TESTS)
-	@ for f in $^; do LLVM_PROFILE_FILE="$$f.prof" ./$$f; done
+	@ for f in $^; do LLVM_PROFILE_FILE="$$f.profraw" ./$$f; done
 
 $(TARGET)/%_test: %_test.c $(SRC)/%.c
 	$(CC) $(CFLAGS) -I./ $(addprefix ../src/,$(patsubst %_test.c, %.c, $<)) $< -o $@ $(LIBSLAB)
 
-$(TESTPROFDATA): test
-	llvm-profdata merge -sparse $(TCOVERAGES) -o $(TESTPROFDATA)
+$(TESTPROFDATA): $(TESTS)
+	llvm-profdata merge -sparse $(TPROFILES) -o $(TESTPROFDATA)
 
 coverage: $(TESTPROFDATA)
-	for f in $(TESTS); do llvm-cov report $$f -instr-profile=$(TESTPROFDATA); done
+	llvm-cov report -instr-profile=$(TESTPROFDATA) $(addprefix -object ,$(TESTS))
 
 full-coverage: $(TESTPROFDATA)
-	for f in $(TESTS); do llvm-cov show $$f -instr-profile=$(TESTPROFDATA); done
+	llvm-cov show -instr-profile=$(TESTPROFDATA) $(addprefix -object ,$(TESTS))
 
 fuzz: $(FUZZERS)
-	@ for f in $^; do mkdir -p $$f.corpus && LLVM_PROFILE_FILE="$$f.prof" $$f $$f.corpus & done; wait
+	@ for f in $^; do mkdir -p $$f.corpus && LLVM_PROFILE_FILE="$$f.profraw" $$f $$f.corpus -runs=100000000; done
 
 # clang version >= April 2017 required (tested with 6.0.0 trunk 310227)
 $(TARGET)/%_fuzz: %_fuzz.c $(SRC)/%.c
 	$(CC) $(CFLAGS) -fsanitize=fuzzer $(addprefix ../src/,$(patsubst %_fuzz.c, %.c, $<)) $< -o $@ $(LIBSLAB)
 
-$(FUZZPROFDATA):
-	llvm-profdata merge -sparse $(FCOVERAGES) -o $(FUZZPROFDATA)
+$(FUZZPROFDATA): $(FUZZERS)
+	llvm-profdata merge -sparse $(FPROFILES) -o $(FUZZPROFDATA)
 
 fuzz-coverage: $(FUZZPROFDATA)
-	for f in $(FUZZERS); do llvm-cov report $$f -instr-profile=$(FUZZPROFDATA); done
+	llvm-cov report -instr-profile=$(FUZZPROFDATA) $(addprefix -object ,$(FUZZERS))
 
 fuzz-full-coverage: $(FUZZPROFDATA)
-	for f in $(FUZZERS); do llvm-cov show $$f -instr-profile=$(FUZZPROFDATA); done
+	llvm-cov show -instr-profile=$(FUZZPROFDATA) $(addprefix -object ,$(FUZZERS))
 
 clean:
-	@rm -f $(TESTS) $(FUZZERS) $(FUZZPROFDATA) $(TESTPROFDATA) $(TCOVERAGES) $(FCOVERAGES)
+	@rm -f $(TESTS) $(FUZZERS) $(FUZZPROFDATA) $(TESTPROFDATA) $(TPROFILES) $(FPROFILES)
 

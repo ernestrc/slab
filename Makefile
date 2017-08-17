@@ -25,7 +25,7 @@ test: src
 	@ cd $(TEST) && $(MAKE) test
 
 fuzz: src
-	@ cd $(TEST) && $(MAKE) fuzz
+	@ cd $(TEST) && $(MAKE) $@
 
 coverage:
 	cd $(TEST) && $(MAKE) $@

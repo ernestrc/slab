@@ -19,6 +19,8 @@ int buf_init(buf_t* buf, size_t cap);
 
 void buf_init_values(buf_t* buf, char* cbuf, size_t cap);
 
+void buf_reset_offsets(buf_t*);
+
 void buf_reset(buf_t*);
 
 int buf_reserve(buf_t*, size_t additional);
@@ -40,7 +42,7 @@ void buf_free(buf_t*);
 #define buf_consume(buf, n)                                                    \
 	(buf)->next_read += n;                                                     \
 	if ((buf)->next_read == (buf)->next_write) {                               \
-		buf_reset(buf);                                                        \
-	}
+		buf_reset_offsets(buf);                                                \
+	}                                                                         
 
 #endif

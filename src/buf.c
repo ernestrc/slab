@@ -16,14 +16,19 @@
 		return -1;                                                             \
 	}
 
+inline void buf_reset_offsets(buf_t* buf)
+{
+	buf->next_write = buf->buf;
+	buf->next_read = buf->buf;
+}
+
 void buf_init_values(buf_t* buf, char* cbuf, size_t cap)
 {
-	buf->next_write = cbuf;
-	buf->next_read = cbuf;
+	buf->buf = cbuf;
 	buf->init_cap = cap;
 	buf->cap = cap;
-	buf->buf = cbuf;
 	buf->last = cbuf + cap;
+	buf_reset_offsets(buf);
 }
 
 int buf_init(buf_t* buf, size_t cap)
@@ -35,7 +40,7 @@ int buf_init(buf_t* buf, size_t cap)
 		return -1;
 	}
 
-	if ((cbuf = calloc(cap, sizeof(char))) == NULL)
+	if ((cbuf = malloc(cap * sizeof(char))) == NULL)
 		return -1;
 
 	buf_init_values(buf, cbuf, cap);
@@ -60,8 +65,7 @@ buf_t* buf_create(size_t cap)
 
 void buf_reset(buf_t* buf)
 {
-	if (buf->cap > buf->init_cap &&
-	  (buf->buf = realloc(buf->buf, buf->init_cap)) == NULL) {
+	if (buf->cap > buf->init_cap && (buf->buf = realloc(buf->buf, buf->init_cap)) == NULL) {
 		perror("realloc");
 		abort();
 	}
@@ -87,6 +91,10 @@ int buf_reserve(buf_t* buf, size_t additional)
 
 int buf_write(buf_t* buf, const char* b, int n)
 {
+	if (n < 0) {
+		errno = EINVAL;
+		return -1;
+	}
 
 	NOVERFLOW(buf, n);
 	NOVERLAP(buf, b, n);
@@ -99,6 +107,11 @@ int buf_write(buf_t* buf, const char* b, int n)
 int buf_read(const buf_t* buf, char* b, int n)
 {
 	int read;
+
+	if (n < 0) {
+		errno = EINVAL;
+		return -1;
+	}
 
 	NOVERLAP(buf, b, n);
 	read = buf_readable(buf);
