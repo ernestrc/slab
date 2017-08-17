@@ -1,5 +1,5 @@
-CC = gcc
-override CFLAGS += -Wall -std=c99
+CC = clang
+CFLAGS = -O2 -Wall -std=c99
 
 INCLUDE_PATH=../include
 TARGET =../bin/

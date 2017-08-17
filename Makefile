@@ -1,12 +1,12 @@
-.PHONY: test-full test analysis fuzz optimized format tags
+.PHONY: test analysis fuzz dist format tags coverage full-coverage fuzz-coverage fuzz-full-coverage
 
 TARGET=./bin
 LIB=./lib
+TEST=./test
+SRC=./src
 
 src: prepare
-	@ cd src && CFLAGS='-ggdb -Werror' $(MAKE)
-
-test-full: analysis test fuzz
+	@ cd $(SRC) && $(MAKE)
 
 prepare:
 	@ mkdir -p $(LIB)
@@ -14,25 +14,34 @@ prepare:
 
 clean:
 	@ rm -rf $(TARGET) $(LIB)
-	@ cd src && $(MAKE) $@
-	@ cd test && $(MAKE) $@
-
-optimized: prepare
-	@ cd src && CFLAGS='-O2' $(MAKE)
+	@ cd $(SRC) && $(MAKE) $@
+	@ cd $(TEST) && $(MAKE) $@
 
 # run clang-analyzer
 analysis: clean
 	@ scan-build $(MAKE)
 
 test: src
-	@ cd test && $(MAKE) test
+	@ cd $(TEST) && $(MAKE) test
 
 fuzz: src
-	@ cd test && $(MAKE) fuzz
+	@ cd $(TEST) && $(MAKE) fuzz
+
+coverage:
+	cd $(TEST) && $(MAKE) $@
+
+full-coverage:
+	cd $(TEST) && $(MAKE) $@
+
+fuzz-coverage:
+	cd $(TEST) && $(MAKE) $@
+
+fuzz-full-coverage:
+	cd $(TEST) && $(MAKE) $@
 
 format:
-	@ find src -name \*.h -o -name \*.c | xargs clang-format -i
-	@ find test -name \*.h -o -name \*.c | xargs clang-format -i
+	@ find $(SRC) -name \*.h -o -name \*.c | xargs clang-format -i
+	@ find $(TEST) -name \*.h -o -name \*.c | xargs clang-format -i
 
 tags:
 	@ ctags -R

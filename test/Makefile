@@ -1,33 +1,52 @@
-CC = gcc
-override CFLAGS += -Wall -fsanitize=address -Werror -std=c99 -ggdb
+CC = clang
+# TODO renable address sanitizer
+CFLAGS = -Wall -fprofile-instr-generate -fcoverage-mapping -Werror -std=c99 -ggdb
 
-TARGET = ../bin/
-TESTS = $(addprefix $(TARGET),$(patsubst %.c,%,$(wildcard *_test.c)))
-FUZZERS = $(addprefix $(TARGET),$(patsubst %.c,%,$(wildcard *_fuzz.c)))
-LIB = ../lib/libslab.a
-LIBFUZZER=./libFuzzer.a
-SRCFUZZER=./Fuzzer
+SRC = ../src
+TARGET = ../bin
+TESTS = $(addprefix $(TARGET)/,$(patsubst %.c,%,$(wildcard *_test.c)))
+FUZZERS = $(addprefix $(TARGET)/,$(patsubst %.c,%,$(wildcard *_fuzz.c)))
+TCOVERAGES = $(addprefix $(TARGET)/,$(patsubst %.c,%.prof,$(wildcard *_test.c)))
+FCOVERAGES = $(addprefix $(TARGET)/,$(patsubst %.c,%.prof,$(wildcard *_fuzz.c)))
 
-.PHONY: clean test fuzz
+LIBSLAB = ../lib/libslab.a
+
+TESTPROFDATA=$(TARGET)/tests.profdata
+FUZZPROFDATA=$(TARGET)/fuzz.profdata
+
+.PHONY: clean test fuzz coverage full-coverage fuzz-coverage
 
 test: $(TESTS)
-	@ for f in $^; do ./$$f; done
+	@ for f in $^; do LLVM_PROFILE_FILE="$$f.prof" ./$$f; done
 
-$(TARGET)%test: %test.c $(LIB)
-	@$(CC) $(CFLAGS) -I./ $< -o $@ $(LIB)
+$(TARGET)/%_test: %_test.c $(SRC)/%.c
+	$(CC) $(CFLAGS) -I./ $(addprefix ../src/,$(patsubst %_test.c, %.c, $<)) $< -o $@ $(LIBSLAB)
 
-clean:
-	@rm -f $(TESTS) $(FUZZERS)
-	@rm -rf $(SRCFUZZER) $(LIBFUZZER)
+$(TESTPROFDATA): test
+	llvm-profdata merge -sparse $(TCOVERAGES) -o $(TESTPROFDATA)
+
+coverage: $(TESTPROFDATA)
+	for f in $(TESTS); do llvm-cov report $$f -instr-profile=$(TESTPROFDATA); done
+
+full-coverage: $(TESTPROFDATA)
+	for f in $(TESTS); do llvm-cov show $$f -instr-profile=$(TESTPROFDATA); done
 
 fuzz: $(FUZZERS)
-	@ for f in $^; do echo $$f; done
+	@ for f in $^; do mkdir -p $$f.corpus && LLVM_PROFILE_FILE="$$f.prof" $$f $$f.corpus & done; wait
 
-$(TARGET)%fuzz: %fuzz.c $(LIBFUZZER)
-	clang -D_GLIBCXX_USE_CXX11_ABI=0 -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined $(addprefix ../src/,$(patsubst %_fuzz.c, %.c, $<)) $< $(LIBFUZZER) -o $@
+# clang version >= April 2017 required (tested with 6.0.0 trunk 310227)
+$(TARGET)/%_fuzz: %_fuzz.c $(SRC)/%.c
+	$(CC) $(CFLAGS) -fsanitize=fuzzer $(addprefix ../src/,$(patsubst %_fuzz.c, %.c, $<)) $< -o $@ $(LIBSLAB)
 
-$(LIBFUZZER): $(SRCFUZZER)
-	@$(SRCFUZZER)/build.sh
+$(FUZZPROFDATA):
+	llvm-profdata merge -sparse $(FCOVERAGES) -o $(FUZZPROFDATA)
 
-$(SRCFUZZER):
-	@git clone https://chromium.googlesource.com/chromium/llvm-project/llvm/lib/Fuzzer
+fuzz-coverage: $(FUZZPROFDATA)
+	for f in $(FUZZERS); do llvm-cov report $$f -instr-profile=$(FUZZPROFDATA); done
+
+fuzz-full-coverage: $(FUZZPROFDATA)
+	for f in $(FUZZERS); do llvm-cov show $$f -instr-profile=$(FUZZPROFDATA); done
+
+clean:
+	@rm -f $(TESTS) $(FUZZERS) $(FUZZPROFDATA) $(TESTPROFDATA) $(TCOVERAGES) $(FCOVERAGES)
+
