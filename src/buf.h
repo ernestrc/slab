@@ -43,6 +43,6 @@ void buf_free(buf_t*);
 	(buf)->next_read += n;                                                     \
 	if ((buf)->next_read == (buf)->next_write) {                               \
 		buf_reset_offsets(buf);                                                \
-	}                                                                         
+	}
 
 #endif

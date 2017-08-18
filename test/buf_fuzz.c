@@ -7,7 +7,8 @@
 #define MAX_SIZE 4096
 #define INITIAL_SIZE 2
 
-int LLVMFuzzerTestOneInput(const uint8_t data, size_t size) {
+int LLVMFuzzerTestOneInput(const uint8_t data, size_t size)
+{
 	static buf_t b1;
 	static buf_t b2;
 	int n;
@@ -28,7 +29,7 @@ int LLVMFuzzerTestOneInput(const uint8_t data, size_t size) {
 		buf_consume(&b1, n);
 	}
 
-	n = buf_write(&b1, (const char *) &data, size);
+	n = buf_write(&b1, (const char*)&data, size);
 	buf_extend(&b1, n);
 
 	if (buf_readable(&b1) < b1.cap / 2)

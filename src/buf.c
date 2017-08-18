@@ -65,7 +65,8 @@ buf_t* buf_create(size_t cap)
 
 void buf_reset(buf_t* buf)
 {
-	if (buf->cap > buf->init_cap && (buf->buf = realloc(buf->buf, buf->init_cap)) == NULL) {
+	if (buf->cap > buf->init_cap &&
+	  (buf->buf = realloc(buf->buf, buf->init_cap)) == NULL) {
 		perror("realloc");
 		abort();
 	}
