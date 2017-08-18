@@ -27,8 +27,9 @@ $(TESTPROFDATA): $(TESTS)
 coverage: $(TESTPROFDATA)
 	llvm-cov report -instr-profile=$(TESTPROFDATA) $(addprefix -object ,$(TESTS))
 
-full-coverage: $(TESTPROFDATA)
-	llvm-cov show -instr-profile=$(TESTPROFDATA) $(addprefix -object ,$(TESTS))
+full-coverage: $(TESTPROFDATA) BROWSER
+	llvm-cov show -format=html -instr-profile=$(TESTPROFDATA) $(addprefix -object ,$(TESTS)) > $(TARGET)/coverage.html
+	@$(BROWSER) $(TARGET)/coverage.html
 
 fuzz: $(FUZZERS)
 	@ for f in $^; do mkdir -p $$f.corpus && LLVM_PROFILE_FILE="$$f.profraw" $$f $$f.corpus -runs=100000000; done
@@ -43,9 +44,14 @@ $(FUZZPROFDATA): $(FUZZERS)
 fuzz-coverage: $(FUZZPROFDATA)
 	llvm-cov report -instr-profile=$(FUZZPROFDATA) $(addprefix -object ,$(FUZZERS))
 
-fuzz-full-coverage: $(FUZZPROFDATA)
-	llvm-cov show -instr-profile=$(FUZZPROFDATA) $(addprefix -object ,$(FUZZERS))
+fuzz-full-coverage: $(FUZZPROFDATA) BROWSER
+	llvm-cov show -format=html -instr-profile=$(FUZZPROFDATA) $(addprefix -object ,$(FUZZERS)) > $(TARGET)/fuzz-coverage.html
+	@$(BROWSER) $(TARGET)/fuzz-coverage.html
 
 clean:
 	@rm -f $(TESTS) $(FUZZERS) $(FUZZPROFDATA) $(TESTPROFDATA) $(TPROFILES) $(FPROFILES)
 
+BROWSER:
+ifndef BROWSER
+	$(error BROWSER env variable is undefined)
+endif
