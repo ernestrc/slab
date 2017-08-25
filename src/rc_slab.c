@@ -61,6 +61,11 @@ int rc_slab_put(rc_slab_t* rc_slab, void* slot_value)
 {
 	rc_slot_t* slot = RC_SLAB_SLOT_HEADER(slot_value);
 
+	if (slot->ref <= 0) {
+		errno = EINVAL;
+		return -1;
+	}
+
 	slot->ref--;
 
 	if (slot->ref == 0 && slab_put(&rc_slab->slab, slot) == -1)
@@ -72,6 +77,11 @@ int rc_slab_put(rc_slab_t* rc_slab, void* slot_value)
 void* rc_slab_dup(void* slot_value)
 {
 	rc_slot_t* slot = RC_SLAB_SLOT_HEADER(slot_value);
+
+	if (slot->ref <= 0) {
+		errno = EINVAL;
+		return NULL;
+	}
 
 	slot->ref++;
 

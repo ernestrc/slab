@@ -1,5 +1,5 @@
 CC = clang
-CFLAGS = -Wall -Werror -fsanitize=undefined -fsanitize-coverage=trace-cmp,trace-pc-guard -fprofile-instr-generate -fcoverage-mapping -std=c11 -g
+CFLAGS = -Wall -Werror -fsanitize=undefined -fsanitize-coverage=trace-cmp,trace-pc-guard -fprofile-instr-generate -fcoverage-mapping -std=c11 -ggdb
 
 TARGET = ../bin
 TESTS = $(addprefix $(TARGET)/,$(patsubst %.c,%,$(wildcard *_test.c)))
@@ -8,6 +8,10 @@ TPROFILES = $(addprefix $(TARGET)/,$(patsubst %.c,%.profraw,$(wildcard *_test.c)
 FPROFILES = $(addprefix $(TARGET)/,$(patsubst %.c,%.profraw,$(wildcard *_fuzz.c)))
 
 LIBSLAB = ../lib/libslab.a
+
+ifndef FUZZER_TOTAL_TIME
+FUZZER_TOTAL_TIME=60
+endif
 
 TESTPROFDATA=$(TARGET)/tests.profdata
 FUZZPROFDATA=$(TARGET)/fuzz.profdata
@@ -31,11 +35,11 @@ full-coverage: $(TESTPROFDATA) BROWSER
 	@$(BROWSER) $(TARGET)/coverage.html
 
 fuzz: $(FUZZERS)
-	@ for f in $^; do mkdir -p $$f.corpus && LLVM_PROFILE_FILE="$$f.profraw" $$f $$f.corpus -runs=100000000; done
+	@ for f in $^; do mkdir -p $$f.corpus && LLVM_PROFILE_FILE="$$f.profraw" $$f $$f.corpus -max_total_time=$(FUZZER_TOTAL_TIME); done; wait
 
 # clang version >= April 2017 required (tested with 6.0.0 trunk 310227)
 $(TARGET)/%_fuzz: %_fuzz.c $(LIBSLAB)
-	$(CC) $(CFLAGS) -fsanitize=fuzzer $(addprefix ../src/,$(patsubst %_fuzz.c, %.c, $<)) $< -o $@ $(LIBSLAB)
+	$(CC) $(CFLAGS) -DLIBSLAB_AUTO -fsanitize=fuzzer $(addprefix ../src/,$(patsubst %_fuzz.c, %.c, $<)) $< -o $@ $(LIBSLAB)
 
 $(FUZZPROFDATA): $(FUZZERS)
 	llvm-profdata merge -sparse $(FPROFILES) -o $(FUZZPROFDATA)
