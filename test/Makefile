@@ -1,7 +1,6 @@
 CC = clang
-CFLAGS = -Wall -Werror -fsanitize-coverage=trace-cmp -fsanitize-coverage=trace-pc-guard -fprofile-instr-generate -fcoverage-mapping -std=c99 -g
+CFLAGS = -Wall -Werror -fsanitize=undefined -fsanitize-coverage=trace-cmp,trace-pc-guard -fprofile-instr-generate -fcoverage-mapping -std=c11 -g
 
-SRC = ../src
 TARGET = ../bin
 TESTS = $(addprefix $(TARGET)/,$(patsubst %.c,%,$(wildcard *_test.c)))
 FUZZERS = $(addprefix $(TARGET)/,$(patsubst %.c,%,$(wildcard *_fuzz.c)))
@@ -18,7 +17,7 @@ FUZZPROFDATA=$(TARGET)/fuzz.profdata
 test: $(TESTS)
 	@ for f in $^; do LLVM_PROFILE_FILE="$$f.profraw" ./$$f; done
 
-$(TARGET)/%_test: %_test.c $(SRC)/%.c
+$(TARGET)/%_test: %_test.c $(LIBSLAB)
 	$(CC) $(CFLAGS) -I./ $(addprefix ../src/,$(patsubst %_test.c, %.c, $<)) $< -o $@ $(LIBSLAB)
 
 $(TESTPROFDATA): $(TESTS)
@@ -35,7 +34,7 @@ fuzz: $(FUZZERS)
 	@ for f in $^; do mkdir -p $$f.corpus && LLVM_PROFILE_FILE="$$f.profraw" $$f $$f.corpus -runs=100000000; done
 
 # clang version >= April 2017 required (tested with 6.0.0 trunk 310227)
-$(TARGET)/%_fuzz: %_fuzz.c $(SRC)/%.c
+$(TARGET)/%_fuzz: %_fuzz.c $(LIBSLAB)
 	$(CC) $(CFLAGS) -fsanitize=fuzzer $(addprefix ../src/,$(patsubst %_fuzz.c, %.c, $<)) $< -o $@ $(LIBSLAB)
 
 $(FUZZPROFDATA): $(FUZZERS)

@@ -1,8 +1,6 @@
 #ifndef LIBSLAB_RC_SLAB_H
 #define LIBSLAB_RC_SLAB_H
 
-#include <ctype.h>
-
 #include "slab.h"
 
 typedef struct rc_slab_s {

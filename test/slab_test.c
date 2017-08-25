@@ -1,10 +1,12 @@
 #include <errno.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
 
 #include "../src/slab.h"
 #include "test.h"
+#include "test_aligned.h"
 
 typedef struct test_struct_s {
 	int val1;
@@ -56,43 +58,12 @@ int test_slab_get()
 	for (i = 0; i < size; ++i) {
 		value = slab_get(b);
 		ASSERT_NEQ(value, NULL);
+		ASSERT_ALIGNED(value, test_struct);
 	}
 
 	ASSERT_NULL(slab_get(b));
 	slab_free(b);
 
-	return 0;
-}
-
-int test_slab_get_put()
-{
-	size_t size = 4;
-	slab_slot_t* slot[2];
-
-	slab_t* b = slab_create(size, sizeof(test_struct));
-	slab_slot_t* block = *b->blocks;
-
-	ASSERT_EQ(b->next, block);
-
-	slot[0] = slab_get(b);
-
-	ASSERT_EQ(slot[0], block + 1);
-	ASSERT_EQ(b->next, ((void*)block) + b->slot_size * 1);
-
-	ASSERT_EQ(slab_put(b, slot[0]), 0);
-	ASSERT_EQ(b->next, block);
-
-	slot[0] = slab_get(b);
-	ASSERT_EQ(slot[0], block + 1);
-
-	slot[1] = slab_get(b);
-	ASSERT_EQ(slab_put(b, slot[0]), 0);
-	ASSERT_EQ(b->next, &block[0]);
-
-	ASSERT_EQ(slab_put(b, slot[1]), 0);
-	ASSERT_EQ(b->next, ((void*)block) + b->slot_size * 1);
-
-	slab_free(b);
 	return 0;
 }
 
@@ -102,7 +73,7 @@ int test_slab_resize()
 
 	size_t init_cap = 8;
 	size_t final_cap = 24;
-	test_struct** s = calloc(final_cap, sizeof(slab_slot_t*));
+	test_struct** s = calloc(final_cap, sizeof(test_struct*));
 	test_struct** slot = s;
 
 	slab_t* slab = slab_create(init_cap, sizeof(test_struct));
@@ -110,6 +81,7 @@ int test_slab_resize()
 	for (i = 0; i < init_cap; i++, slot++) {
 		*slot = slab_get(slab);
 		ASSERT_NEQ(*slot, NULL);
+		ASSERT_ALIGNED(*slot, test_struct);
 		(*slot)->val1 = i;
 	}
 
@@ -121,6 +93,7 @@ int test_slab_resize()
 	for (i = init_cap; i < final_cap; i++, slot++) {
 		*slot = slab_get(slab);
 		ASSERT_NEQ(*slot, NULL);
+		ASSERT_ALIGNED(*slot, test_struct);
 		(*slot)->val1 = i;
 	}
 
@@ -132,8 +105,11 @@ int test_slab_resize()
 		ASSERT_EQ(slab_put(slab, *slot), 0);
 	}
 
-	for (slot = s, i = 0; i < final_cap; i++, slot++)
-		ASSERT_NEQ(slab_get(slab), NULL);
+	for (slot = s, i = 0; i < final_cap; i++, slot++) {
+		*slot = slab_get(slab);
+		ASSERT_NEQ(*slot, NULL);
+		ASSERT_ALIGNED(*slot, test_struct);
+	}
 
 	ASSERT_EQ(slab_get(slab), NULL);
 
@@ -169,6 +145,19 @@ int test_slab_init_null_initializers()
 	return 0;
 }
 
+int test_slab_aligned()
+{
+	ASSERT_ALIGNED_INIT(slab_t, slab_init, slab_deinit, slab_get, struct one)
+	ASSERT_ALIGNED_INIT(slab_t, slab_init, slab_deinit, slab_get, struct two)
+	ASSERT_ALIGNED_INIT(slab_t, slab_init, slab_deinit, slab_get, struct three)
+	ASSERT_ALIGNED_INIT(slab_t, slab_init, slab_deinit, slab_get, struct four)
+	ASSERT_ALIGNED_INIT(slab_t, slab_init, slab_deinit, slab_get, struct five)
+	ASSERT_ALIGNED_INIT(slab_t, slab_init, slab_deinit, slab_get, struct six)
+	ASSERT_ALIGNED_INIT(slab_t, slab_init, slab_deinit, slab_get, struct seven)
+
+	return 0;
+}
+
 int main(int argc, char* argv[])
 {
 	test_ctx_t ctx;
@@ -178,9 +167,9 @@ int main(int argc, char* argv[])
 	TEST_RUN(ctx, test_slab_create);
 	TEST_RUN(ctx, test_slab_free_null);
 	TEST_RUN(ctx, test_slab_get);
-	TEST_RUN(ctx, test_slab_get_put);
 	TEST_RUN(ctx, test_slab_resize);
 	TEST_RUN(ctx, test_slab_init_null_initializers);
+	TEST_RUN(ctx, test_slab_aligned);
 
 	TEST_RELEASE(ctx);
 }

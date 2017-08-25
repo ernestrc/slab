@@ -1,5 +1,5 @@
 CC = clang
-CFLAGS = -O2 -Wall -std=c99
+CFLAGS = -O2 -Wall -std=c11
 
 INCLUDE_PATH=../include
 TARGET =../bin/
@@ -14,7 +14,7 @@ LIB = ../lib/libslab.a
 $(LIB): $(OBJS)
 	ar rs $(LIB) $(OBJS)
 
-%.o: %.c
+%.o: %.c %.h
 	$(CC) $(CFLAGS) -c $<
 
 clean:

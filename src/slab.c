@@ -4,12 +4,14 @@
 
 #include "slab.h"
 
+const char __HEADER_OFFSET = (char)((alignof(max_align_t)) * sizeof(char));
+
 #define SLAB_NEXT_SLOT(slab, block)                                            \
 	(slab_slot_t*)(((void*)block) + slab->slot_size)
 
-#define SLAB_SLOT_VALUE(slot) ((void*)((slab_slot_t*)slot + 1))
+#define SLAB_SLOT_VALUE(slot) __SLAB_SLOT_VALUE(slab_slot_t, slot)
 
-#define SLAB_SLOT_HEADER(slot) (((slab_slot_t*)(slot)) - 1)
+#define SLAB_SLOT_HEADER(value) __SLAB_SLOT_HEADER(slab_slot_t, value)
 
 static slab_slot_t* slab_link_slots(
   slab_t* slab, slab_slot_t* block, size_t block_size)
@@ -55,42 +57,30 @@ int slab_init(slab_t* slab, size_t cap, size_t slot_size)
 		return -1;
 	}
 
-	if ((slab->blocks = calloc(1, sizeof(void*))) == NULL) {
-		errno = ENOMEM;
-		goto err;
+	slab->next = NULL;
+	slab->blocks = NULL;
+	slab->block_size = NULL;
+	slab->block_n = 0;
+	slab->cap = 0;
+
+	// make sure slots are aligned in a worst-case scenario
+	while (slot_size % alignof(max_align_t) != 0)
+		slot_size++;
+
+	slab->slot_size = __SLAB_SLOT_SIZE(slot_size);
+
+	if (slab_reserve(slab, cap) == -1) {
+		if (slab->blocks) {
+			if (*slab->blocks)
+				free(*slab->blocks);
+			free(slab->blocks);
+		}
+		if (slab->block_size)
+			free(slab->block_size);
+		return -1;
 	}
-
-	if ((slab->block_size = calloc(1, sizeof(size_t))) == NULL) {
-		errno = ENOMEM;
-		goto err;
-	}
-
-	slab->slot_size = sizeof(slab_slot_t) + slot_size;
-
-	if ((*slab->blocks = calloc(cap, slab->slot_size)) == NULL) {
-		errno = ENOMEM;
-		goto err;
-	}
-
-	*slab->block_size = cap;
-	slab->block_n = 1;
-	slab->next = *slab->blocks;
-	slab->cap = cap;
-
-	if (slab_link_slots(slab, *slab->blocks, cap) == NULL)
-		goto err;
 
 	return 0;
-
-err:
-	if (slab->blocks) {
-		if (*slab->blocks)
-			free(*slab->blocks);
-		free(slab->blocks);
-	}
-	if (slab->block_size)
-		free(slab->block_size);
-	return -1;
 }
 
 int slab_reserve(slab_t* slab, size_t additional)
@@ -114,7 +104,8 @@ int slab_reserve(slab_t* slab, size_t additional)
 	if ((slab->blocks = realloc(slab->blocks, block_n * sizeof(void*))) == NULL)
 		return -1;
 
-	if ((slab->blocks[block_i] = calloc(additional, slab->slot_size)) == NULL)
+	if ((slab->blocks[block_i] = aligned_alloc(
+		   alignof(max_align_t), additional * slab->slot_size)) == NULL)
 		return -1;
 
 	slab->block_size[block_i] = additional;
@@ -145,6 +136,12 @@ void slab_deinit(slab_t* slab)
 
 	free(slab->blocks);
 	free(slab->block_size);
+
+	slab->next = NULL;
+	slab->blocks = NULL;
+	slab->block_size = NULL;
+	slab->block_n = 0;
+	slab->cap = 0;
 }
 
 void slab_free(slab_t* slab)

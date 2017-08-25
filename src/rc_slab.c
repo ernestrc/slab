@@ -1,9 +1,9 @@
 #include "rc_slab.h"
-#include <assert.h>
 #include <errno.h>
 
-#define RC_SLAB_SLOT_VALUE(slot) ((void*)((rc_slot_t*)slot + 1))
-#define RC_SLAB_SLOT_HEADER(slot) (((rc_slot_t*)(slot)) - 1)
+#define RC_SLAB_SLOT_VALUE(slot) __SLAB_SLOT_VALUE(rc_slot_t, slot)
+
+#define RC_SLAB_SLOT_HEADER(value) __SLAB_SLOT_HEADER(rc_slot_t, value)
 
 rc_slab_t* rc_slab_create(size_t cap, size_t slot_size)
 {
@@ -29,10 +29,8 @@ int rc_slab_init(rc_slab_t* rc_slab, size_t cap, size_t slot_size)
 		return -1;
 	}
 
-	if (slab_init(&rc_slab->slab, cap, sizeof(rc_slot_t) + slot_size) == -1)
+	if (slab_init(&rc_slab->slab, cap, __SLAB_SLOT_SIZE(slot_size)) == -1)
 		return -1;
-
-	assert(((rc_slot_t*)(rc_slab->slab.next + 1))->ref == 0);
 
 	return 0;
 }
@@ -63,7 +61,6 @@ int rc_slab_put(rc_slab_t* rc_slab, void* slot_value)
 {
 	rc_slot_t* slot = RC_SLAB_SLOT_HEADER(slot_value);
 
-	assert(slot->ref > 0);
 	slot->ref--;
 
 	if (slot->ref == 0 && slab_put(&rc_slab->slab, slot) == -1)
@@ -76,7 +73,6 @@ void* rc_slab_dup(void* slot_value)
 {
 	rc_slot_t* slot = RC_SLAB_SLOT_HEADER(slot_value);
 
-	assert(slot->ref > 0);
 	slot->ref++;
 
 	return slot_value;
