@@ -3,6 +3,7 @@
 *.lo
 *.o
 *.obj
+*.bc
 
 # Precompiled Headers
 *.gch
@@ -31,3 +32,4 @@
 tags
 bin
 test/Fuzzer
+test/klee/*_out

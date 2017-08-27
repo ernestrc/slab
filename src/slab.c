@@ -1,8 +1,13 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
 
 #include "slab.h"
+
+#ifndef max_align_t
+#define max_align_t long double
+#endif
 
 const char __HEADER_OFFSET = (char)((alignof(max_align_t)) * sizeof(char));
 

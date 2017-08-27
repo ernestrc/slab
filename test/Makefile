@@ -16,9 +16,14 @@ endif
 TESTPROFDATA=$(TARGET)/tests.profdata
 FUZZPROFDATA=$(TARGET)/fuzz.profdata
 
-.PHONY: clean test fuzz coverage full-coverage fuzz-coverage
+.PHONY: clean test fuzz coverage full-coverage fuzz-coverage klee
 
-test: $(TESTS)
+test: test-unit klee
+
+test-unit: $(TESTS)
+	@echo
+	@echo "RUNNING UNIT TESTS"
+	@echo "---------------------------"
 	@ for f in $^; do LLVM_PROFILE_FILE="$$f.profraw" ./$$f; done
 
 $(TARGET)/%_test: %_test.c $(LIBSLAB)
@@ -51,8 +56,12 @@ fuzz-full-coverage: $(FUZZPROFDATA) BROWSER
 	llvm-cov show -format=html -instr-profile=$(FUZZPROFDATA) $(addprefix -object ,$(FUZZERS)) > $(TARGET)/fuzz-coverage.html
 	@$(BROWSER) $(TARGET)/fuzz-coverage.html
 
+klee: $(LIBSLAB)
+	@cd klee && ./env $(MAKE)
+
 clean:
 	@rm -f $(TESTS) $(FUZZERS) $(FUZZPROFDATA) $(TESTPROFDATA) $(TPROFILES) $(FPROFILES)
+	@cd klee && ./env $(MAKE) $@
 
 BROWSER:
 ifndef BROWSER

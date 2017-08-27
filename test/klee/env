@@ -1,0 +1,2 @@
+#!/bin/env bash
+docker run -w /src -v `pwd`/../../src:/include/slab -v `pwd`:/src --rm -ti --ulimit='stack=-1:-1' klee/klee $@
