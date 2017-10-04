@@ -1,5 +1,5 @@
 CC=clang
-CFLAGS = -Wall -Werror -fsanitize=undefined -std=c11 -ggdb
+CFLAGS = -Wall -Werror -fsanitize=undefined -std=c11 -ggdb -DLIBSLAB_AUTO
 TESTS=$(wildcard *.c)
 BCODE=$(patsubst %.c,%.bc,$(TESTS)) $(patsubst %_klee.c, $(SRC)/%.bc, $(TESTS))
 EXECS=$(patsubst %.c,%_out/test,$(TESTS))
