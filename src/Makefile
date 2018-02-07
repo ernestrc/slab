@@ -1,5 +1,5 @@
-CC = clang
-CFLAGS = -O2 -Wall -std=c11
+CC ?= clang
+CFLAGS ?= -O2 -flto -Wall -std=c11
 
 INCLUDE_PATH=../include
 TARGET =../bin/

@@ -1,6 +1,3 @@
-CC = clang
-CFLAGS = -Wall -Werror -fsanitize=undefined -fsanitize-coverage=trace-cmp,trace-pc-guard -fprofile-instr-generate -fcoverage-mapping -std=c11 -ggdb
-
 TARGET = ../bin
 TESTS = $(addprefix $(TARGET)/,$(patsubst %.c,%,$(wildcard *_test.c)))
 FUZZERS = $(addprefix $(TARGET)/,$(patsubst %.c,%,$(wildcard *_fuzz.c)))
