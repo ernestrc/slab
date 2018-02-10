@@ -5,6 +5,10 @@
 #include <stddef.h>
 #include <stdalign.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct slab_slot_s {
 	struct slab_slot_s* next;
 } slab_slot_t;
@@ -38,7 +42,7 @@ void slab_deinit(slab_t*);
 
 void slab_free(slab_t*);
 
-const char __HEADER_OFFSET;
+char __HEADER_OFFSET;
 
 #define __SLAB_SLOT_SIZE(size) (alignof(max_align_t) + (size))
 
@@ -47,4 +51,7 @@ const char __HEADER_OFFSET;
 #define __SLAB_SLOT_HEADER(tp, value)                                          \
 	((tp*)(((char*)(value)) - __HEADER_OFFSET))
 
+#ifdef __cplusplus
+}
+#endif
 #endif

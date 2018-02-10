@@ -4,7 +4,7 @@
 
 #include "slab.h"
 
-const char __HEADER_OFFSET = (char)((alignof(max_align_t)) * sizeof(char));
+char __HEADER_OFFSET = (char)((alignof(max_align_t)) * sizeof(char));
 
 #define SLAB_NEXT_SLOT(slab, block)                                            \
 	(slab_slot_t*)(((void*)block) + slab->slot_size)

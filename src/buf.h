@@ -4,6 +4,10 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct {
 	size_t init_cap;
 	size_t cap;
@@ -45,4 +49,7 @@ void buf_free(buf_t*);
 		buf_reset_offsets(buf);                                                \
 	}
 
+#ifdef __cplusplus
+}
+#endif
 #endif

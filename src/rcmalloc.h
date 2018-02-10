@@ -3,6 +3,10 @@
 
 #include <stdlib.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* initialize rcmalloc context */
 int rcmalloc_init(size_t cap);
 
@@ -18,4 +22,7 @@ void rcfree(void* ptr);
 
 void rcmalloc_deinit();
 
+#ifdef __cplusplus
+}
+#endif
 #endif

@@ -3,6 +3,10 @@
 
 #include "slab.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct rc_slab_s {
 	slab_t slab;
 } rc_slab_t;
@@ -25,4 +29,7 @@ void rc_slab_free(rc_slab_t* rc_slab);
 
 void* rc_slab_dup(void* slot);
 
+#ifdef __cplusplus
+}
+#endif
 #endif
