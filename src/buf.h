@@ -33,21 +33,36 @@ int buf_reserve(buf_t*, size_t additional);
 
 #define buf_writable(b) ((b)->last - (b)->next_write)
 
+#define buf_full(b) ((b)->last == (b)->next_write)
+
 int buf_write(buf_t*, const char* b, int n);
 
 int buf_read(const buf_t*, char* b, int n);
 
+/* Attempts to compact buffer on the read side
+ * by memmoving relevant data. Returns true if compacting succeeds. */
 bool buf_compact(buf_t*);
 
+/* Free this buffer and all its associated resources. Use only if buffer
+ * was allocated using buf_create */
 void buf_free(buf_t*);
 
-#define buf_extend(buf, n) (buf)->next_write += n;
+/* Moves write offset by n bytes */
+#define buf_extend(b, n) (b)->next_write += n;
 
-#define buf_consume(buf, n)                                                    \
-	(buf)->next_read += n;                                                     \
-	if ((buf)->next_read == (buf)->next_write) {                               \
-		buf_reset_offsets(buf);                                                \
+/* Moves read offset by n bytes */
+#define buf_ack(b, n) (b)->next_read += n;
+
+/* Attempts to compact buffer by reseting offsets */
+#define buf_ecompact(b)                                                        \
+	if ((b)->next_read == (b)->next_write) {                                   \
+		buf_reset_offsets(b);                                                  \
 	}
+
+/* Moves read offset by n bytes and attempts to reset offsets */
+#define buf_consume(b, n)                                                      \
+	buf_ack(b, n);                                                             \
+	buf_ecompact(b);
 
 #ifdef __cplusplus
 }
