@@ -23,7 +23,9 @@ int buf_init(buf_t* buf, size_t cap);
 
 void buf_init_values(buf_t* buf, char* cbuf, size_t cap);
 
-void buf_reset_offsets(buf_t*);
+#define buf_reset_offsets(b)                                                   \
+	(b)->next_write = (b)->buf;                                                \
+	(b)->next_read = (b)->buf;
 
 void buf_reset(buf_t*);
 

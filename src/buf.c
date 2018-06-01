@@ -16,12 +16,6 @@
 		return -1;                                                             \
 	}
 
-inline void buf_reset_offsets(buf_t* buf)
-{
-	buf->next_write = buf->buf;
-	buf->next_read = buf->buf;
-}
-
 void buf_init_values(buf_t* buf, char* cbuf, size_t cap)
 {
 	buf->buf = cbuf;
