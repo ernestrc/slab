@@ -1,6 +1,5 @@
 #include <dlfcn.h>
 #include <errno.h>
-#include <malloc.h>
 #include <stdio.h>
 
 #include "rc_slab.h"

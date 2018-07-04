@@ -21,9 +21,8 @@ clean:
 analysis: clean
 	@ scan-build $(MAKE)
 
-test: export CC = clang
-test: export CFLAGS = -Wall -Werror -fsanitize=undefined -fsanitize-coverage=trace-cmp,trace-pc-guard -fprofile-instr-generate -fcoverage-mapping -std=c11 -ggdb
-test: clean src
+test: clean
+	@ cd $(SRC) && $(MAKE) CC=clang CFLAGS='-Wall -Werror -fsanitize=undefined -fsanitize-coverage=trace-cmp,trace-pc-guard -fprofile-instr-generate -fcoverage-mapping -std=c11 -ggdb'
 	@ cd $(TEST) && $(MAKE) test
 
 fuzz: src

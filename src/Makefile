@@ -1,5 +1,5 @@
-CC ?= clang
-CFLAGS ?= -O2 -Wall -std=c11
+CC = gcc
+CFLAGS = -O2 -Wall -std=c11
 
 INCLUDE_PATH=../include
 TARGET =../bin/
@@ -12,7 +12,8 @@ LIB = ../lib/libslab.a
 .PHONY: clean
 
 $(LIB): $(OBJS)
-	ar rs $(LIB) $(OBJS)
+	$(AR) rs $(LIB) $(OBJS)
+	ranlib $(LIB)
 
 %.o: %.c %.h
 	$(CC) $(CFLAGS) -c $<
