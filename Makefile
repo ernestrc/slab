@@ -5,6 +5,8 @@ LIB=./lib
 TEST=./test
 SRC=./src
 
+TEST_FLAGS=CC=clang CFLAGS='-Wall -Werror -fsanitize=undefined -fsanitize-coverage=trace-cmp,trace-pc-guard -fprofile-instr-generate -fcoverage-mapping -std=c11 -ggdb'
+
 src: prepare
 	@ cd $(SRC) && $(MAKE)
 
@@ -21,9 +23,9 @@ clean:
 analysis: clean
 	@ scan-build $(MAKE)
 
-test: clean
-	@ cd $(SRC) && $(MAKE) CC=clang CFLAGS='-Wall -Werror -fsanitize=undefined -fsanitize-coverage=trace-cmp,trace-pc-guard -fprofile-instr-generate -fcoverage-mapping -std=c11 -ggdb'
-	@ cd $(TEST) && $(MAKE) test
+test: clean prepare
+	@ cd $(SRC) && $(MAKE) $(TEST_FLAGS)
+	@ cd $(TEST) && $(MAKE) $(TEST_FLAGS) test
 
 fuzz: src
 	@ cd $(TEST) && $(MAKE) $@
